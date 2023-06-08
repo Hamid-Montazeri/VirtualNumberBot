@@ -7,7 +7,15 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.IOException;
+
 public class MyLongPollingBot extends TelegramLongPollingBot {
+
+    private final MessageHandler messageHandler;
+
+    public MyLongPollingBot() {
+        messageHandler = new MessageHandler();
+    }
 
     @Override
     public String getBotToken() {
@@ -21,11 +29,12 @@ public class MyLongPollingBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        MessageHandler messageHandler = new MessageHandler();
-        SendMessage sendMessage = messageHandler.handleMessage(update);
         try {
-            execute(sendMessage);
-        } catch (TelegramApiException e) {
+            SendMessage sendMessage = messageHandler.handleMessage(update);
+            if (sendMessage != null) {
+                execute(sendMessage);
+            }
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
