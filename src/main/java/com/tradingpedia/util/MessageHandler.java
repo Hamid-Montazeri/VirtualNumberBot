@@ -3,7 +3,12 @@ package com.tradingpedia.util;
 import com.tradingpedia.ButtonHelper;
 import com.tradingpedia.api.ApiClient;
 import com.tradingpedia.model.App;
+import javassist.compiler.ast.Pair;
+import org.jsoup.Jsoup;
+import org.telegram.telegrambots.meta.api.methods.ActionType;
+import org.telegram.telegrambots.meta.api.methods.send.SendChatAction;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -14,11 +19,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import rx.Single;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.tradingpedia.ButtonHelper.*;
 
@@ -114,34 +117,30 @@ public class MessageHandler {
         List<App> apps = new ArrayList<>();
 
         do {
-            ApiClient.getClient()
-                    .getBaseOnApps(NumberLandConstants.NUMBER_LAND_API_KEY, "getservice")
-                    .enqueue(new Callback<List<App>>() {
-                        @Override
-                        public void onResponse(Call<List<App>> call, Response<List<App>> response) {
-                            if (response.isSuccessful() && response.body() != null) {
-                                List<App> activeAppNumbers = response.body()
-                                        .stream()
-                                        .filter(app -> app.getActive().equals("1"))
-                                        .toList();
+            ApiClient.getClient().getBaseOnApps(NumberLandConstants.NUMBER_LAND_API_KEY, "getservice").enqueue(new Callback<List<App>>() {
+                @Override
+                public void onResponse(Call<List<App>> call, Response<List<App>> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        List<App> activeAppNumbers = response.body().stream().filter(app -> app.getActive().equals("1")).toList();
+                        apps.addAll(activeAppNumbers);
+                    }
+                }
 
-                                apps.addAll(activeAppNumbers);
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Call<List<App>> call, Throwable throwable) {
-                            sendMessage.setText("خطا در دریافت اطلاعات...\nلطفاً مجدداً تلاش نمایید.");
-                        }
-                    });
+                @Override
+                public void onFailure(Call<List<App>> call, Throwable throwable) {
+                    sendMessage.setText("خطا در دریافت اطلاعات...\nلطفاً مجدداً تلاش نمایید.");
+                }
+            });
         } while (apps.isEmpty());
 
         sendMessage.setText("اپلیکیشن مورد نظر را انتخاب نمایید:");
 
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> finalList = new ArrayList<>();
+
         for (App app : apps) {
-            InlineKeyboardButton keyboardButton = buttonHelper.createInlineButton(app.getName(), app.getNameEn(), null);
+            String buttonText = app.getEmoji() != null ? app.getEmoji() + " " + app.getName() + " " + app.getEmoji() : app.getName();
+            InlineKeyboardButton keyboardButton = buttonHelper.createInlineButton(buttonText, app.getNameEn(), null);
             List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
             inlineKeyboardButtons.add(keyboardButton);
             finalList.add(inlineKeyboardButtons);
@@ -149,6 +148,11 @@ public class MessageHandler {
 
         inlineKeyboardMarkup.setKeyboard(finalList);
         sendMessage.setReplyMarkup(inlineKeyboardMarkup);
+
+        SendChatAction sendChatAction = new SendChatAction();
+        sendChatAction.setChatId(update.getCallbackQuery().getMessage().getChatId());
+        sendChatAction.setAction(ActionType.TYPING);
+
         return sendMessage;
     }
 
