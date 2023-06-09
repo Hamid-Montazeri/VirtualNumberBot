@@ -62,4 +62,12 @@ public class ButtonHelper {
                 .build();
     }
 
+    public String concatNameAndEmoji(String name, String emoji) {
+        if (emoji != null) {
+            return String.format("%s %s %s", emoji, name, emoji);
+        } else {
+            return name;
+        }
+    }
+
 }
