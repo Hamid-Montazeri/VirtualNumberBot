@@ -4,12 +4,7 @@ import com.tradingpedia.ButtonHelper;
 import com.tradingpedia.api.ApiClient;
 import com.tradingpedia.model.App;
 import com.tradingpedia.model.Country;
-import javassist.compiler.ast.Pair;
-import org.jsoup.Jsoup;
-import org.telegram.telegrambots.meta.api.methods.ActionType;
-import org.telegram.telegrambots.meta.api.methods.send.SendChatAction;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -17,14 +12,11 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
-import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.Response;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static com.tradingpedia.ButtonHelper.*;
 
@@ -136,7 +128,7 @@ public class MessageHandler {
             List<List<InlineKeyboardButton>> finalList = new ArrayList<>();
 
             for (App app : apps) {
-                String buttonText = app.getEmoji() != null ? app.getEmoji() + " " + app.getName() + " " + app.getEmoji() : app.getName();
+                String buttonText = buttonHelper.concatNameAndEmoji(app.getName(), app.getEmoji());
                 InlineKeyboardButton keyboardButton = buttonHelper.createInlineButton(buttonText, app.getNameEn(), null);
                 List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
                 inlineKeyboardButtons.add(keyboardButton);
@@ -173,7 +165,7 @@ public class MessageHandler {
             List<List<InlineKeyboardButton>> finalList = new ArrayList<>();
 
             for (Country country : countries) {
-                String buttonText = country.getEmoji() != null ? country.getEmoji() + " " + country.getName() + " " + country.getEmoji() : country.getName();
+                String buttonText = buttonHelper.concatNameAndEmoji(country.getName(), country.getEmoji());
                 InlineKeyboardButton keyboardButton = buttonHelper.createInlineButton(buttonText, country.getNameEn(), null);
                 List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
                 inlineKeyboardButtons.add(keyboardButton);
