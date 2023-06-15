@@ -2,6 +2,7 @@ package com.tradingpedia.util;
 
 import com.tradingpedia.ButtonHelper;
 import com.tradingpedia.api.ApiClient;
+import com.tradingpedia.enums.NumberType;
 import com.tradingpedia.model.App;
 import com.tradingpedia.model.Country;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -17,6 +18,7 @@ import retrofit2.Response;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.tradingpedia.ButtonHelper.*;
 
@@ -46,18 +48,19 @@ public class MessageHandler {
         } else if (update.hasCallbackQuery()) {
             CallbackQuery callbackQuery = update.getCallbackQuery();
             Long chatId = callbackQuery.getMessage().getChatId();
-            String data = callbackQuery.getData();
+            String selectedCallback = callbackQuery.getData();
 
             SendMessage sendMessage = new SendMessage();
             sendMessage.setChatId(chatId);
 
-            System.out.println("data = " + data + " , callback = " + callBackDatas);
+            System.out.println("data = " + selectedCallback + " , callback = " + callBackDatas);
 
-            if (data.equals(CALL_BACK_DATA_APP)) { // بر اساس اپلیکیشن
-                return getNumbersForApps(update);
-            } else if (data.equals(CALL_BACK_DATA_COUNTRY)) { // بر اساس کشور
-                return getNumbersForCountries(update);
-            } else if (data.equals("")) { // اسم اپ یا کشور
+            // اسم اپ یا کشور
+            if (selectedCallback.equals(CALL_BACK_DATA_APP)) {  // بر اساس اپلیکیشن
+                return getNumbers(update, NumberType.APP);
+            } else if (selectedCallback.equals(CALL_BACK_DATA_COUNTRY)) {  // بر اساس کشور
+                return getNumbers(update, NumberType.COUNTRY);
+            } else {
 
             }
 
@@ -105,77 +108,56 @@ public class MessageHandler {
         return sendMessage;
     }
 
-    private SendMessage getNumbersForApps(Update update) throws IOException {
+    private SendMessage getNumbers(Update update, NumberType numberType) throws IOException {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
 
-        Response<List<App>> response = ApiClient.getClient().getBaseOnApps().execute();
+        if (numberType == NumberType.APP) {
+            Response<List<App>> appResponse = ApiClient.getClient().getBaseOnApps().execute();
 
-        if (!response.isSuccessful()) {
-            sendMessage.setText("خطا در دریافت اطلاعات...\nلطفاً مجدداً تلاش نمایید.");
-            return sendMessage;
-        }
-
-        if (response.body() != null) {
-            List<App> apps = response.body()
-                    .stream()
-                    .filter(app -> app.getActive().equals("1"))
-                    .toList();
-
-            sendMessage.setText("اپلیکیشن مورد نظر را انتخاب نمایید:");
-
-            InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-            List<List<InlineKeyboardButton>> finalList = new ArrayList<>();
-
-            for (App app : apps) {
-                String buttonText = buttonHelper.concatNameAndEmoji(app.getName(), app.getEmoji());
-                InlineKeyboardButton keyboardButton = buttonHelper.createInlineButton(buttonText, app.getNameEn(), null);
-                List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
-                inlineKeyboardButtons.add(keyboardButton);
-                finalList.add(inlineKeyboardButtons);
-                callBackDatas.add(app.getNameEn());
+            if (!appResponse.isSuccessful()) {
+                sendMessage.setText("خطا در دریافت اطلاعات...\nلطفاً مجدداً تلاش نمایید.");
+                return sendMessage;
             }
 
-            inlineKeyboardMarkup.setKeyboard(finalList);
-            sendMessage.setReplyMarkup(inlineKeyboardMarkup);
+            if (appResponse.body() != null) {
+                List<App> activeApps = appResponse.body().stream().filter(app -> app.getActive().equals("1")).toList().subList(0, 5);
+                callBackDatas.addAll(activeApps.stream().map(App::getNameEn).toList());
+
+                sendMessage.setText("اپلیکیشن مورد نظر را انتخاب نمایید:");
+
+                InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+
+                Map<String, Object> map = buttonHelper.generateButtons(activeApps);
+                List<List<InlineKeyboardButton>> keyboards = (List<List<InlineKeyboardButton>>) map.get("list");
+
+                inlineKeyboardMarkup.setKeyboard(keyboards);
+                sendMessage.setReplyMarkup(inlineKeyboardMarkup);
+            }
         }
-
-        return sendMessage;
-    }
-
-    private SendMessage getNumbersForCountries(Update update) throws IOException {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
-
-        Response<List<Country>> response = ApiClient.getClient().getBaseOnCountries().execute();
-
-        if (!response.isSuccessful() || response.body() == null) {
-            sendMessage.setText("خطا در دریافت اطلاعات...\nلطفاً مجدداً تلاش نمایید.");
-        } else {
-            sendMessage.setText("کشور مورد نظر را انتخاب نمایید:");
-
-            List<Country> countries = response.body()
-                    .stream()
-                    .filter(app -> app.getActive().equals("1"))
-                    .toList();
-
-            System.out.println("countries: " + response.body().size() + ", active: " + countries.size());
-
-            InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-            List<List<InlineKeyboardButton>> finalList = new ArrayList<>();
-
-            for (Country country : countries) {
-                String buttonText = buttonHelper.concatNameAndEmoji(country.getName(), country.getEmoji());
-                InlineKeyboardButton keyboardButton = buttonHelper.createInlineButton(buttonText, country.getNameEn(), null);
-                List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
-                inlineKeyboardButtons.add(keyboardButton);
-                finalList.add(inlineKeyboardButtons);
-                callBackDatas.add(country.getNameEn());
+        if (numberType == NumberType.COUNTRY) {
+            Response<List<Country>> countryResponse = ApiClient.getClient().getBaseOnCountries().execute();
+            if (!countryResponse.isSuccessful()) {
+                sendMessage.setText("خطا در دریافت اطلاعات...\nلطفاً مجدداً تلاش نمایید.");
+                return sendMessage;
             }
 
-            inlineKeyboardMarkup.setKeyboard(finalList);
-            sendMessage.setReplyMarkup(inlineKeyboardMarkup);
+            if (countryResponse.body() != null) {
+                List<Country> activeCountries = countryResponse.body().stream().filter(country -> country.getActive().equals("1")).toList().subList(0, 3);
+                callBackDatas.addAll(activeCountries.stream().map(Country::getNameEn).toList());
+
+                sendMessage.setText("اپلیکیشن مورد نظر را انتخاب نمایید:");
+
+                InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+
+                Map<String, Object> map = buttonHelper.generateButtons(activeCountries);
+                List<List<InlineKeyboardButton>> keyboards = (List<List<InlineKeyboardButton>>) map.get("list");
+
+                inlineKeyboardMarkup.setKeyboard(keyboards);
+                sendMessage.setReplyMarkup(inlineKeyboardMarkup);
+            }
         }
+
         return sendMessage;
     }
 
