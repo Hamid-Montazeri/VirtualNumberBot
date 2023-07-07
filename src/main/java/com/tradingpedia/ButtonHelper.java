@@ -9,14 +9,12 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ButtonHelper {
     public static final String BTN_BUY_NUMBER = "خرید شماره مجازی";
     public static final String BTN_BASED_ON_APP = "بر اساس اپلیکیشن";
-    public static final String BTN_BASED_ON_COUNTRY = "بر اساس کشور";
+    public static final String BTN_BASED_ON_COUNTRY = "بر اساس نام کشور";
     public static final String CALL_BACK_DATA_APP = "app";
     public static final String CALL_BACK_DATA_COUNTRY = "country";
 
@@ -64,27 +62,23 @@ public class ButtonHelper {
                 .build();
     }
 
-    public Map<String, Object> generateButtons(List<?> appsOrCountries) {
-        Map<String, Object> map = new HashMap<>();
+    public List<List<InlineKeyboardButton>> generateButtons(List<?> appsOrCountries) {
         List<List<InlineKeyboardButton>> list = new ArrayList<>();
         for (Object appsOrCountry : appsOrCountries) {
             String buttonText;
             InlineKeyboardButton keyboardButton = null;
             if (appsOrCountry instanceof App app) {
                 buttonText = concatNameAndEmoji(app.getName(), app.getEmoji());
-                keyboardButton = createInlineButton(buttonText, app.getNameEn(), null);
-                map.putIfAbsent("callback", app.getNameEn());
+                keyboardButton = createInlineButton(buttonText, app.getId(), null);
             } else if (appsOrCountry instanceof Country country) {
                 buttonText = concatNameAndEmoji(country.getName(), country.getEmoji());
-                keyboardButton = createInlineButton(buttonText, country.getNameEn(), null);
-                map.putIfAbsent("callback", country.getNameEn());
+                keyboardButton = createInlineButton(buttonText, country.getId(), null);
             }
             List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
             inlineKeyboardButtons.add(keyboardButton);
             list.add(inlineKeyboardButtons);
         }
-        map.putIfAbsent("list", list);
-        return map;
+        return list;
     }
 
     public String concatNameAndEmoji(String name, String emoji) {
