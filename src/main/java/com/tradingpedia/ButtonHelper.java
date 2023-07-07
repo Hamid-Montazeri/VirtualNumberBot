@@ -1,20 +1,20 @@
 package com.tradingpedia;
 
+import com.tradingpedia.model.App;
+import com.tradingpedia.model.Country;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
-import javax.validation.constraints.Null;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public class ButtonHelper {
     public static final String BTN_BUY_NUMBER = "خرید شماره مجازی";
     public static final String BTN_BASED_ON_APP = "بر اساس اپلیکیشن";
-    public static final String BTN_BASED_ON_COUNTRY = "بر اساس کشور";
+    public static final String BTN_BASED_ON_COUNTRY = "بر اساس نام کشور";
     public static final String CALL_BACK_DATA_APP = "app";
     public static final String CALL_BACK_DATA_COUNTRY = "country";
 
@@ -60,6 +60,25 @@ public class ButtonHelper {
         return InlineKeyboardMarkup.builder()
                 .keyboard(inlineKeyboardButtons)
                 .build();
+    }
+
+    public List<List<InlineKeyboardButton>> generateButtons(List<?> appsOrCountries) {
+        List<List<InlineKeyboardButton>> list = new ArrayList<>();
+        for (Object appsOrCountry : appsOrCountries) {
+            String buttonText;
+            InlineKeyboardButton keyboardButton = null;
+            if (appsOrCountry instanceof App app) {
+                buttonText = concatNameAndEmoji(app.getName(), app.getEmoji());
+                keyboardButton = createInlineButton(buttonText, app.getId(), null);
+            } else if (appsOrCountry instanceof Country country) {
+                buttonText = concatNameAndEmoji(country.getName(), country.getEmoji());
+                keyboardButton = createInlineButton(buttonText, country.getId(), null);
+            }
+            List<InlineKeyboardButton> inlineKeyboardButtons = new ArrayList<>();
+            inlineKeyboardButtons.add(keyboardButton);
+            list.add(inlineKeyboardButtons);
+        }
+        return list;
     }
 
     public String concatNameAndEmoji(String name, String emoji) {
